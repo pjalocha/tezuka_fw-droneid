@@ -1,0 +1,12 @@
+#!/bin/sh
+# Start DroneID tasks after the network and IIO services are available.
+
+DAEMON=/usr/bin/pluto-droneid
+
+case "$1" in
+	start)   "$DAEMON" start all ;;
+	stop)    "$DAEMON" stop all ;;
+	restart|reload) "$DAEMON" restart all ;;
+	status)  "$DAEMON" status all ;;
+	*) echo "Usage: $0 {start|stop|restart|status}"; exit 1 ;;
+esac

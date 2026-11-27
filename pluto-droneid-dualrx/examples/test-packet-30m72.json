@@ -1,0 +1,12 @@
+{
+  "format": "complex-float32-le-interleaved-iq",
+  "sample_rate_hz": 30720000,
+  "sample_count": 25904,
+  "payload_crc16": "70be",
+  "latitude_deg": 51.5007,
+  "longitude_deg": -0.1246,
+  "altitude_m": 35.0,
+  "identifier": "TEST-DRONEID-01",
+  "synthetic": true,
+  "transmission": "explicit command only; one shot by default"
+}

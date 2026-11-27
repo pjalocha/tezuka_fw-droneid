@@ -10,3 +10,6 @@ u_uac2.h
 board/tezuka/common/uboot-env.config
 Dashboard/node_modules/
 Dashboard/vendor/
+
+# Python bytecode caches
+__pycache__/

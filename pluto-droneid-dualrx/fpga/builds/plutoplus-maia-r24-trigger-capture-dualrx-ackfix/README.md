@@ -1,0 +1,7 @@
+# Pluto+ dual-RX DroneID capture FPGA image r24 ACK fix
+
+Built with Vivado 2023.2 for XC7Z010 from the Maia Pluto+ IIO design. This is the r23 GPIO-fixed dual-RX trigger-capture design with a capture rearm fix: Linux acknowledges after consuming the fixed-size DMA buffer, and the FPGA now accepts that ACK in any completed state, including `ST_DRAIN` when the ADC DMAC has stopped requesting data. The ACK clears capture state and restarts pretrigger history.
+
+The Vivado build completed through routing and bitstream generation. Routed timing reports WNS +0.987 ns and WHS +0.014 ns, with all specified timing constraints met. Placed utilization: 11,202/17,600 LUTs (63.65%), 18,084/35,200 registers (51.38%), 55.5/60 BRAM tiles (92.50%), and 58/80 DSPs (72.50%). Route and bitstream DRC completed with zero errors. The standalone RTL ACK simulation passed. Physical Pluto boot and repeated capture/rearm remain to be verified.
+
+`droneid-capture-dualrx-r24-ackfix.bit.bin` is the Bootgen-converted raw bitstream selected by U-Boot on the SD card; do not copy the Vivado `.bit` file under that name. The matching SD-card set is `../../sd-card-sets/trigger-capture-dualrx-r24-ackfix/`. The rebuilt ARM capture application is included here as `pluto-droneid-capture`; install it as `/usr/bin/pluto-droneid-capture` on Pluto along with this FPGA image. Its `--gain-db` option configures both independent RX-chain gain controls to the same manual setting and rejects values outside the ADI standard gain table for this 2.4 GHz application (-3 to +71 dB).

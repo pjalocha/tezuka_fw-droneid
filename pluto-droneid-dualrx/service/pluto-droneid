@@ -1,0 +1,122 @@
+#!/bin/sh
+# Small task shellbox for the Pluto DroneID services.
+
+CONFIG=/etc/pluto-droneid.conf
+RUNDIR=/var/run/pluto-droneid
+
+usage() {
+	echo "Usage: $0 {start|stop|restart|status} [task|all]"
+	echo "Tasks are defined in $CONFIG"
+}
+
+valid_task_name() {
+	case "$1" in
+		''|*[!A-Za-z0-9_-]*) return 1 ;;
+		*) return 0 ;;
+	esac
+}
+
+task_start() {
+	task_name=$1
+	task_bin=$2
+	task_args=$3
+	if [ ! -x "$task_bin" ]; then
+		echo "pluto-droneid: $task_name executable missing: $task_bin"
+		return 1
+	fi
+	mkdir -p "$RUNDIR" || return 1
+	pidfile="$RUNDIR/$task_name.pid"
+	# The config carries simple whitespace-separated argv, not shell syntax.
+	set -f
+	set -- $task_args
+	start-stop-daemon -S -q -b -m -p "$pidfile" --exec "$task_bin" -- "$@" \
+		>/dev/null 2>&1
+	result=$?
+	set +f
+	if [ "$result" -eq 0 ]; then
+		echo "Started $task_name"
+	else
+		echo "Could not start $task_name (already running or start failed)"
+	fi
+	return "$result"
+}
+
+task_stop() {
+	task_name=$1
+	task_bin=$2
+	pidfile="$RUNDIR/$task_name.pid"
+	if [ ! -f "$pidfile" ]; then
+		echo "$task_name is stopped"
+		return 0
+	fi
+	start-stop-daemon -K -q -p "$pidfile" --exec "$task_bin" >/dev/null 2>&1
+	result=$?
+	if [ "$result" -eq 0 ]; then
+		rm -f "$pidfile"
+		echo "Stopped $task_name"
+	else
+		echo "Could not stop $task_name"
+	fi
+	return "$result"
+}
+
+task_status() {
+	task_name=$1
+	task_bin=$2
+	task_enabled=$3
+	pidfile="$RUNDIR/$task_name.pid"
+	if [ -f "$pidfile" ] && start-stop-daemon -K -t -q -p "$pidfile" --exec "$task_bin" >/dev/null 2>&1; then
+		echo "$task_name: running (autostart=$task_enabled)"
+	else
+		echo "$task_name: stopped (autostart=$task_enabled)"
+	fi
+}
+
+run_tasks() {
+	action=$1
+	requested=$2
+	found=0
+	failed=0
+	while IFS='|' read -r task_name task_enabled task_bin task_args || [ -n "$task_name" ]; do
+		case "$task_name" in ''|\#*) continue ;; esac
+		valid_task_name "$task_name" || { echo "Invalid task name: $task_name"; failed=1; continue; }
+		case "$task_enabled" in yes|no) ;; *) echo "Invalid autostart flag for $task_name: $task_enabled"; failed=1; continue ;; esac
+		case "$task_bin" in /*) ;; *) echo "Task executable must be an absolute path: $task_name"; failed=1; continue ;; esac
+		[ "$requested" = all ] || [ "$requested" = "$task_name" ] || continue
+		found=1
+		case "$action" in
+			start)
+				if [ "$requested" = all ] && [ "$task_enabled" != yes ]; then
+					echo "Skipping $task_name (autostart=no)"
+				else
+					task_start "$task_name" "$task_bin" "$task_args" || failed=1
+				fi
+				;;
+			stop) task_stop "$task_name" "$task_bin" || failed=1 ;;
+			status) task_status "$task_name" "$task_bin" "$task_enabled" ;;
+		esac
+	done < "$CONFIG"
+	if [ "$found" -eq 0 ] && [ "$requested" != all ]; then
+		echo "Unknown task: $requested"
+		return 1
+	fi
+	return "$failed"
+}
+
+[ -r "$CONFIG" ] || { echo "Missing config: $CONFIG"; exit 1; }
+command=$1
+requested=${2:-all}
+[ "$requested" = all ] || valid_task_name "$requested" || { usage; exit 2; }
+case "$command" in
+	start) run_tasks start "$requested" ;;
+	stop) run_tasks stop "$requested" ;;
+	restart)
+		run_tasks stop "$requested"
+		stop_result=$?
+		run_tasks start "$requested"
+		start_result=$?
+		[ "$stop_result" -eq 0 ] && [ "$start_result" -eq 0 ]
+		;;
+	status) run_tasks status "$requested" ;;
+	*) usage; exit 2 ;;
+esac

@@ -1,0 +1,22 @@
+Standalone resource mapping for droneid_iq_capture_dual
+=======================================================
+
+Tool: Yosys 0.62+119 (OSS CAD Suite container), synth_xilinx -family xc7
+Top: droneid_iq_capture_dual, default 15,360 PRE and 15,360 POST samples
+
+Mapped cells:
+  RAMB18E1: 90 (45 RAMB36-equivalent tiles)
+  LUTs:     831 estimated logic cells
+  FDRE:     347
+  CARRY4:   45
+
+The RAM count is consistent with two 15,360 x 48-bit memories rounded up to
+the FPGA's available RAM dimensions. This is only the standalone capture block;
+it excludes the Maia FFT, detectors, AXI-DMAC, and board system. The existing
+dual-RX routed candidate uses 7.5 BRAM tiles in Vivado, so a rough arithmetic
+sum is 52.5 of the XC7Z010's 60 tiles. This is not a placement or timing result.
+
+Full-design Yosys synthesis currently stops while mapping the existing Maia
+FFT's distributed twiddle ROM. The installed container does not include
+Vivado, so no complete Pluto+ route or bitstream was produced for this capture
+variant.

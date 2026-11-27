@@ -1,0 +1,6 @@
+config BR2_PACKAGE_PLUTO_DRONEID
+	bool "pluto-droneid transmitter"
+	depends on BR2_PACKAGE_LIBIIO
+	help
+	  Experimental DJI DroneID TX utility, Maia FPGA trigger counters, and
+	  dual-RX triggered I/Q capture tool for PlutoSDR+.
